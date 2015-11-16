@@ -9,7 +9,7 @@ line twitter client (it can only update your status and post media though).
   
 	  tar -zxvf gweet-linux-amd64.tar.gz
 	  mkdir ~/.sharenix/plugins
-	  cp ./gweet ~/.sharenix/plugins
+	  cp ./gweet-linux-amd64/gweet ~/.sharenix/plugins
 	  
   ```
 * Edit your sharenix.json config file:
