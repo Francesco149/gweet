@@ -32,7 +32,7 @@ import (
 	"strconv"
 )
 
-const gweetVersion = "gweet 1.0.0"
+const gweetVersion = "gweet 1.0.1"
 
 func configPath() (res string, err error) {
 	exeFolder, err := osext.ExecutableFolder()
@@ -152,7 +152,7 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 			return
 		}
 
-		ids += strconv.FormatInt(media.MediaID, 10)
+		ids += media.MediaIDString
 		ids += ","
 	}
 
