@@ -25,14 +25,14 @@ import (
 	"github.com/kardianos/osext"
 	"io/ioutil"
 	"log"
-	"net/url"
+	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
-	"math"
 )
 
 const gweetVersion = "gweet 1.1.0"
@@ -149,27 +149,27 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 			return
 		}
 
-		/*mime*/meme := http.DetectContentType(data)
-		
+		/*mime*/ meme := http.DetectContentType(data)
+
 		log.Println(meme)
 
-		if !strings.HasPrefix(/*mime*/meme, "image") {
+		if !strings.HasPrefix( /*mime*/ meme, "image") {
 			var media anaconda.ChunkedMedia
 			var videoMedia anaconda.VideoMedia
-			
+
 			// TODO: do not read entire file to memory
 
 			media, err = api.UploadVideoInit(len(data), "video/mp4")
 			if err != nil {
 				return
 			}
-			
+
 			chunkIndex := 0
-			for i := 0; i < len(data); i+= 5242879 {
+			for i := 0; i < len(data); i += 5242879 {
 				log.Println("Chunk", chunkIndex)
-				err = api.UploadVideoAppend(media.MediaIDString, chunkIndex, 
+				err = api.UploadVideoAppend(media.MediaIDString, chunkIndex,
 					base64.StdEncoding.EncodeToString(
-						data[i:int(math.Min(5242879.0, float64(len(data))))], 
+						data[i:int(math.Min(5242879.0, float64(len(data))))],
 					),
 				)
 				if err != nil {
@@ -177,12 +177,12 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 				}
 				chunkIndex++
 			}
-			
+
 			videoMedia, err = api.UploadVideoFinalize(media.MediaIDString)
 			if err != nil {
 				return
 			}
-			
+
 			ids += videoMedia.MediaIDString
 			ids += ","
 		} else {
