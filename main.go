@@ -26,13 +26,16 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
+	"math"
 )
 
-const gweetVersion = "gweet 1.0.1"
+const gweetVersion = "gweet 1.1.0"
 
 func configPath() (res string, err error) {
 	exeFolder, err := osext.ExecutableFolder()
@@ -138,22 +141,60 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 
 	var ids string
 	var data []byte
-	var media anaconda.Media
 	for _, filePath := range files {
-		// TODO: use chunked upload for larger files?
 		log.Println("Uploading", filePath)
+		// TODO: refuse files larger than 15mb for vids and 5mb for images
 		data, err = ioutil.ReadFile(filePath)
 		if err != nil {
 			return
 		}
 
-		media, err = api.UploadMedia(base64.StdEncoding.EncodeToString(data))
+		/*mime*/meme := http.DetectContentType(data)
+		
+		log.Println(meme)
+
+		if !strings.HasPrefix(/*mime*/meme, "image") {
+			var media anaconda.ChunkedMedia
+			var videoMedia anaconda.VideoMedia
+			
+			// TODO: do not read entire file to memory
+
+			media, err = api.UploadVideoInit(len(data), "video/mp4")
+			if err != nil {
+				return
+			}
+			
+			chunkIndex := 0
+			for i := 0; i < len(data); i+= 5242879 {
+				log.Println("Chunk", chunkIndex)
+				err = api.UploadVideoAppend(media.MediaIDString, chunkIndex, 
+					base64.StdEncoding.EncodeToString(
+						data[i:int(math.Min(5242879.0, float64(len(data))))], 
+					),
+				)
+				if err != nil {
+					return
+				}
+				chunkIndex++
+			}
+			
+			videoMedia, err = api.UploadVideoFinalize(media.MediaIDString)
+			if err != nil {
+				return
+			}
+			
+			ids += videoMedia.MediaIDString
+			ids += ","
+		} else {
+			var media anaconda.Media
+			media, err = api.UploadMedia(
+				base64.StdEncoding.EncodeToString(data))
+			ids += media.MediaIDString
+			ids += ","
+		}
 		if err != nil {
 			return
 		}
-
-		ids += media.MediaIDString
-		ids += ","
 	}
 
 	ids = ids[:len(ids)-1]
