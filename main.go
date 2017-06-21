@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -23,6 +24,8 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/kardianos/osext"
+	"image/color"
+	"image/png"
 	"io/ioutil"
 	"log"
 	"math"
@@ -35,7 +38,7 @@ import (
 	"strings"
 )
 
-const gweetVersion = "gweet 1.1.1"
+const gweetVersion = "gweet 1.1.2"
 
 func configPath() (res string, err error) {
 	exeFolder, err := osext.ExecutableFolder()
@@ -134,8 +137,14 @@ func (g *gweet) newApi(account string) (api *anaconda.TwitterApi, err error) {
 	return
 }
 
+/* uset to check if the image has a Set method */
+type Changeable interface {
+	Set(x, y int, c color.Color)
+}
+
 func (g *gweet) tweet(api *anaconda.TwitterApi,
-	text string, files []string, lewd bool) (tweetUrl string, err error) {
+	text string, files []string, lewd bool,
+	bypassCompression bool) (tweetUrl string, err error) {
 
 	log.Printf(`Tweeting {"%s", %v, lewd=%v}.`+"\n", text, files, lewd)
 
@@ -187,6 +196,40 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 			ids += ","
 		} else {
 			var media anaconda.Media
+
+			if bypassCompression {
+				img, err := png.Decode(bytes.NewReader(data))
+				if err != nil {
+					err = nil
+					/* probably not a png */
+				} else if imgedit, ok := img.(Changeable); ok {
+					firstpx := img.At(0, 0)
+					r, g, b, a := firstpx.RGBA()
+
+					if a == 0xFFFF {
+						log.Println("Lowering first pixel's alpha by 1 " +
+							"to bypass jpeg compression on opaque PNGs")
+						imgedit.Set(0, 0,
+							color.RGBA{
+								uint8(r / 0x101),
+								uint8(g / 0x101),
+								uint8(b / 0x101),
+								254})
+
+						buf := new(bytes.Buffer)
+						err = png.Encode(buf, img)
+						if err != nil {
+							log.Println(err)
+						} else {
+							data = buf.Bytes()
+						}
+					}
+				} else {
+					log.Println("Warning: image format is not changeable, " +
+						" will upload it unchanged")
+				}
+			}
+
 			media, err = api.UploadMedia(
 				base64.StdEncoding.EncodeToString(data))
 			ids += media.MediaIDString
@@ -241,6 +284,9 @@ func main() {
 	textPtr := flag.String("text", "", "Text of the tweet. Optional if the "+
 		"tweet contains at least one media file. Max 140 characters.")
 
+	bypassCompressionPtr := flag.Bool("bypass-compression", true,
+		"If enabled, jpeg compression for opaque png images will be bypassed")
+
 	flag.Parse()
 
 	g, err := initialize()
@@ -263,7 +309,8 @@ func main() {
 	}
 
 	// the last line of output is used as the sharenix plugin's output
-	tweetUrl, err := g.tweet(api, *textPtr, flag.Args(), *lewdPtr)
+	tweetUrl, err := g.tweet(api, *textPtr, flag.Args(),
+		*lewdPtr, *bypassCompressionPtr)
 	if err != nil {
 		fmt.Println(err)
 		return
