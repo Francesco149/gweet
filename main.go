@@ -35,7 +35,7 @@ import (
 	"strings"
 )
 
-const gweetVersion = "gweet 1.1.0"
+const gweetVersion = "gweet 1.1.1"
 
 func configPath() (res string, err error) {
 	exeFolder, err := osext.ExecutableFolder()
@@ -197,10 +197,14 @@ func (g *gweet) tweet(api *anaconda.TwitterApi,
 		}
 	}
 
-	ids = ids[:len(ids)-1]
-	log.Println("media_ids:", ids)
 	v := url.Values{}
-	v.Set("media_ids", ids)
+
+	if len(ids) != 0 {
+		ids = ids[:len(ids)-1]
+		log.Println("media_ids:", ids)
+		v.Set("media_ids", ids)
+	}
+
 	v.Set("possibly_sensitive", strconv.FormatBool(lewd))
 	tweet, err := api.PostTweet(text, v)
 	if err != nil {
