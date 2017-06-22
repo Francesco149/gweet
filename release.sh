@@ -1,5 +1,7 @@
 #!/bin/sh
 
+git pull origin master
+
 echo "Compiling and Stripping"
 go build --ldflags "-linkmode external -extldflags '-static -s -w'"
 
