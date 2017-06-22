@@ -1,7 +1,7 @@
 #!/bin/sh
 
-echo "Compiling"
-go build --ldflags "-linkmode external -extldflags -static"
+echo "Compiling and Stripping"
+go build --ldflags "-linkmode external -extldflags '-static -s -w'"
 
 echo "Packaging"
 folder="gweet-linux-$(uname -m)"
