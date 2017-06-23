@@ -3,7 +3,8 @@
 git pull origin master
 
 echo -e "\nCompiling and Stripping"
-go build --ldflags "-linkmode external -extldflags '-static -s -w'"
+LDFLAGS="$LDFLAGS -static -s -w -Wl,--gc-sections"
+go build --ldflags "-linkmode external -extldflags '$LDFLAGS'"
 
 echo -e "\nPackaging"
 folder="gweet-linux-$(uname -m)"
