@@ -3,7 +3,7 @@
 git pull origin master
 
 echo -e "\nCompiling and Stripping"
-LDFLAGS="$LDFLAGS -static -s -w -Wl,--gc-sections"
+LDFLAGS="$LDFLAGS -static -s -w -no-pie -Wl,--gc-sections"
 go build --ldflags "-linkmode external -extldflags '$LDFLAGS'"
 
 echo -e "\nPackaging"
