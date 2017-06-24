@@ -16,3 +16,6 @@ tar -cvJf "$folder".tar.xz "$folder"/gweet
 echo -e "\nResult:"
 tar tf "$folder".tar.xz
 
+readelf --dynamic "$folder"/gweet
+ldd "$folder"/gweet
+
